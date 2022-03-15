@@ -46,13 +46,16 @@ msgid "plugins.generic.citationStyleLanguage.settings.citationDownloads"
 msgstr "Formats téléchargeables"
 
 msgid "plugins.generic.citationStyleLanguage.download.ris"
-msgstr "Endnote/Zotero/Mendeley (RIS)"
+msgstr "Citavi/Endnote/Zotero/Mendeley (RIS)"
 
 msgid "plugins.generic.citationStyleLanguage.download.bibtex"
 msgstr "BibTeX"
 
 msgid "plugins.generic.citationStyleLanguage.style.vancouver"
 msgstr "Vancouver"
+
+msgid "plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing"
+msgstr "WU H&M"
 
 msgid "plugins.generic.citationStyleLanguage.style.turabian-fullnote-bibliography"
 msgstr "Turabian"
@@ -88,3 +91,15 @@ msgstr ""
 
 msgid "plugins.generic.citationStyleLanguage.displayName"
 msgstr "Module de styles bibliographiques"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedences"
+msgstr "Priorité aux métadonnées"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"
+msgstr "Sélectionnez le type de métadonnées qui sera utilisé pour formater la citation."
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceArticle"
+msgstr "Date de parution de l'article"
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceIssue"
+msgstr "Métadonnées du fascicule (année, volume, numéro)"

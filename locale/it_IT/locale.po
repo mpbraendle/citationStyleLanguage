@@ -53,11 +53,14 @@ msgstr "Turabian"
 msgid "plugins.generic.citationStyleLanguage.style.vancouver"
 msgstr "Vancouver"
 
+msgid "plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing"
+msgstr "WU H&M"
+
 msgid "plugins.generic.citationStyleLanguage.download.bibtex"
 msgstr "BibTeX"
 
 msgid "plugins.generic.citationStyleLanguage.download.ris"
-msgstr "Endnote/Zotero/Mendeley (RIS)"
+msgstr "Citavi/Endnote/Zotero/Mendeley (RIS)"
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationDownloads"
 msgstr "Formati di scarico"
@@ -84,3 +87,15 @@ msgstr ""
 
 msgid "plugins.generic.citationStyleLanguage.settings.publisherLocation"
 msgstr "Localizzazione del publisher"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedences"
+msgstr "Precedenza dei metadati"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"
+msgstr "Seleziona quale tipo di metadati sarà usato per formattare la citazione."
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceArticle"
+msgstr "Data di pubblicazione dell'articolo"
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceIssue"
+msgstr "Metadati del fascicolo (anno, volume, numero)"

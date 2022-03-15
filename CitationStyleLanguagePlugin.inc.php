@@ -24,6 +24,10 @@ class CitationStyleLanguagePlugin extends GenericPlugin {
 	/** @var array List of citation download formats available */
 	public $_citationDownloads = array();
 
+	# UZH CHANGE OJS-118 2021/02/12/mb
+	/** @var array List of citation format precedences available */
+	public $_citationPrecedences = array();
+
 	/**
 	 * @copydoc Plugin::getDisplayName()
 	 */
@@ -114,6 +118,13 @@ class CitationStyleLanguagePlugin extends GenericPlugin {
 				'title' => __('plugins.generic.citationStyleLanguage.style.vancouver'),
 				'isEnabled' => true,
 			),
+			# UZH CHANGE OJS-79 2020/04/16 New CSL for GISo
+			array(
+				'id' => 'wirtschaftsuniversitat-wien-handel-und-marketing',
+				'title' => __('plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing'),
+				'isEnabled' => true,
+			),
+			# END UZH CHANGE OJS-79
 		);
 
 		// If hooking in to add a custom .csl file, add a `useCsl` key to your
@@ -146,6 +157,57 @@ class CitationStyleLanguagePlugin extends GenericPlugin {
 
 		return $primaryStyle['id'];
 	}
+
+	# UZH CHANGE OJS-118 2021/02/12/mb
+	/**
+	 * Get list of available formatting precedences
+	 *
+	 * @return array
+	 */
+	public function getCitationPrecedences() {
+
+		if (!empty($this->_citationPrecedences)) {
+			return $this->_citationPrecedences;
+		}
+
+		$defaults = array(
+			array(
+				'id' => 'article',
+				'title' => __('plugins.generic.citationStyleLanguage.settings.precedenceArticle'),
+				'isPrecedence' => true,
+			),
+			array(
+				'id' => 'issue',
+				'title' => __('plugins.generic.citationStyleLanguage.settings.precedenceIssue'),
+			),
+		);
+
+		$this->_citationPrecedences = $defaults;
+
+		return $this->_citationPrecedences;
+	}
+
+	/**
+	 * Get the style format precedence or default to the first one
+	 *
+	 * @param $contextId integer Journal ID
+	 * @return string
+	 */
+	public function getCitationPrecedence($contextId = 0) {
+		$citationPrecedence = $this->getSetting($contextId, 'citationPrecedence');
+		if ($citationPrecedence) {
+			return $citationPrecedence;
+		}
+
+		$precedences = $this->getCitationPrecedences();
+		$formatPrecedences = array_filter($precedences, function($precedence) {
+			return !empty($precedence['isPrecedence']);
+		});
+
+		$defaultPrecedence = count($formatPrecedences) ? array_shift($formatPrecedences) : array_shift($precedences);
+		return $defaultPrecedence['id'];
+	}
+	# END UZH CHANGE OJS-118
 
 	/**
 	 * Get enabled citation styles
@@ -353,33 +415,61 @@ class CitationStyleLanguagePlugin extends GenericPlugin {
 			foreach ($authors as $author) {
 				$currentAuthor = new stdClass();
 				if (empty($author->getLocalizedFamilyName())) {
-					$currentAuthor->family = htmlspecialchars($author->getLocalizedGivenName());
+					$currentAuthor->family = htmlspecialchars(trim($author->getLocalizedGivenName()));
 				} else {
-					$currentAuthor->family = htmlspecialchars($author->getLocalizedFamilyName());
-					$currentAuthor->given = htmlspecialchars($author->getLocalizedGivenName());
+					$currentAuthor->family = htmlspecialchars(trim($author->getLocalizedFamilyName()));
+					$currentAuthor->given = htmlspecialchars(trim($author->getLocalizedGivenName()));
 				}
 				$citationData->author[] = $currentAuthor;
 			}
 		}
 
-		if ($publication->getData('datePublished')) {
-			$citationData->issued = new stdClass();
-			$citationData->issued->raw = htmlspecialchars($publication->getData('datePublished'));
-			$publishedPublications = $article->getPublishedPublications();
-			if (count($publishedPublications) > 1) {
-				$originalPublication = array_reduce($publishedPublications, function($a, $b) {
-					return $a && $a->getId() < $b->getId() ? $a : $b;
-				});
-				$originalDate = $originalPublication->getData('datePublished');
-				if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
-					$citationData->{'original-date'} = new stdClass();
-					$citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+		# UZH CHANGE OJS-118 2021/02/12/mb
+		$contextId = $article->getContextId();
+		$precedence = $this->getSetting($contextId, 'citationPrecedence');
+
+		if ($precedence === 'issue') {
+			if ($issue && $issue->getPublished()) {
+				$citationData->issued = new stdClass();
+				$dateYear = $issue->getYear();
+				$citationData->issued->{'date-parts'} = [[ $dateYear ]];
+				# $citationData->issued->raw = htmlspecialchars($dateYear);
+			} elseif ($publication->getData('datePublished')) {
+				$citationData->issued = new stdClass();
+				$citationData->issued->raw = htmlspecialchars($publication->getData('datePublished'));
+				$publishedPublications = $article->getPublishedPublications();
+				if (count($publishedPublications) > 1) {
+					$originalPublication = array_reduce($publishedPublications, function($a, $b) {
+						return $a && $a->getId() < $b->getId() ? $a : $b;
+					});
+					$originalDate = $originalPublication->getData('datePublished');
+					if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
+						$citationData->{'original-date'} = new stdClass();
+						$citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+					}
 				}
 			}
-		} elseif ($issue && $issue->getPublished()) {
-			$citationData->issued = new stdClass();
-			$citationData->issued->raw = htmlspecialchars($issue->getDatePublished());
+		} else {
+			if ($publication->getData('datePublished')) {
+				$citationData->issued = new stdClass();
+				$citationData->issued->raw = htmlspecialchars($publication->getData('datePublished'));
+				$publishedPublications = $article->getPublishedPublications();
+				if (count($publishedPublications) > 1) {
+					$originalPublication = array_reduce($publishedPublications, function($a, $b) {
+						return $a && $a->getId() < $b->getId() ? $a : $b;
+					});
+					$originalDate = $originalPublication->getData('datePublished');
+					if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
+						$citationData->{'original-date'} = new stdClass();
+						$citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+					}
+				}
+			} elseif ($issue && $issue->getPublished()) {
+				$citationData->issued = new stdClass();
+				$citationData->issued->raw = htmlspecialchars($issue->getDatePublished());
+			}
 		}
+		# END UZH CHANGE OJS-118
 
 		if ($publication->getData('pages')) {
 			$citationData->page = htmlspecialchars($publication->getData('pages'));
@@ -473,7 +563,7 @@ class CitationStyleLanguagePlugin extends GenericPlugin {
 		// See: https://github.com/citation-style-language/styles/issues/2831
 		$citation = str_replace('\n', "\n", $citation);
 
-        $encodedFilename = urlencode(substr($article->getLocalizedTitle(), 0, 60)) . '.' . $styleConfig['fileExtension'];
+		$encodedFilename = urlencode(substr($article->getLocalizedTitle(), 0, 60)) . '.' . $styleConfig['fileExtension'];
 
 		header("Content-Disposition: attachment; filename*=UTF-8''\"$encodedFilename\"");
 		header('Content-Type: ' . $styleConfig['contentType']);

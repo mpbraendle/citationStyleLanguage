@@ -47,11 +47,14 @@ msgstr "Turabian"
 msgid "plugins.generic.citationStyleLanguage.style.vancouver"
 msgstr "Vancouver"
 
+msgid "plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing"
+msgstr "WU H&M"
+
 msgid "plugins.generic.citationStyleLanguage.download.bibtex"
 msgstr "BibTeX"
 
 msgid "plugins.generic.citationStyleLanguage.download.ris"
-msgstr "Endnote/Zotero/Mendeley (RIS)"
+msgstr "Citavi/Endnote/Zotero/Mendeley (RIS)"
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationDownloads"
 msgstr "Downloadable Formats"
@@ -76,3 +79,16 @@ msgstr "Publisher Location"
 
 msgid "plugins.generic.citationStyleLanguage.settings.publisherLocation.description"
 msgstr "Some citation formats request the geographic location of the publisher, such as \"London, U.K.\"."
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedences"
+msgstr "Metadata Precedence"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"
+msgstr "Select which type of metadata will be used to format the citation."
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceArticle"
+msgstr "Publication date of the article"
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceIssue"
+msgstr "Metadata of the issue (year, volume, number)"
+

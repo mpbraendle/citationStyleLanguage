@@ -25,6 +25,14 @@
 				{fbvElement type="radio" name="primaryCitationStyle" id="primaryCitationStyle"|concat:$id value=$id checked=($id === $primaryCitationStyle) label=$style translate=false}
 			{/foreach}
 		{/fbvFormSection}
+		{* UZH CHANGE OJS-118 2022/02/19/mb *}
+		{fbvFormSection list=true title="plugins.generic.citationStyleLanguage.settings.citationPrecedences"}
+			<p>{translate key="plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"}</p>
+			 {foreach from=$allCitationPrecedences item="precedence" key="id"}
+				 {fbvElement type="radio" name="citationPrecedence" id="citationPrecedence"|concat:$id value=$id checked=($id === $citationPrecedence) label=$precedence translate=false}
+			{/foreach}
+		{/fbvFormSection}
+		{* END UZH CHANGE OJS-118 *}
 		{fbvFormSection list=true title="plugins.generic.citationStyleLanguage.settings.citationFormats"}
 			<p>{translate key="plugins.generic.citationStyleLanguage.settings.citationFormatsDescription"}</p>
 			{foreach from=$allStyles item="style" key="id"}
