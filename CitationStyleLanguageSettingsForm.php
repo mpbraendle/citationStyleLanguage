@@ -51,6 +51,9 @@ class CitationStyleLanguageSettingsForm extends Form
         $context = $request->getContext();
         $contextId = $context->getId();
         $this->setData('primaryCitationStyle', $this->plugin->getSetting($contextId, 'primaryCitationStyle'));
+        # UZH CHANGE OJS-118 2021/02/12/mb
+        $this->setData('citationPrecedence', $this->plugin->getSetting($contextId, 'citationPrecedence'));
+        # END UZH CHANGE OJS-118
         $this->setData('enabledCitationStyles', array_keys($this->plugin->getEnabledCitationStyles($contextId)));
         $this->setData('enabledCitationDownloads', $this->plugin->getEnabledCitationDownloads($contextId));
         $this->setData('publisherLocation', $this->plugin->getSetting($contextId, 'publisherLocation'));
@@ -69,6 +72,9 @@ class CitationStyleLanguageSettingsForm extends Form
     {
         $this->readUserVars([
             'primaryCitationStyle',
+            # UZH CHANGE OJS-118 2021/02/12/mb
+            'citationPrecedence',
+            # END UZH CHANGE OJS-118
             'enabledCitationStyles',
             'enabledCitationDownloads',
             'publisherLocation',
@@ -101,6 +107,13 @@ class CitationStyleLanguageSettingsForm extends Form
             $allDownloads[$style['id']] = $style['title'];
         }
 
+        # UZH CHANGE OJS-118 2022/01/19/mb
+        $allPrecedences = [];
+        foreach ($this->plugin->getCitationPrecedences() as $precedence) {
+            $allPrecedences[$precedence['id']] = $precedence['title'];
+        }
+        # END UZH CHANGE OJS-118
+
         $allUserGroups = [];
         $userGroups = Repo::userGroup()->getByRoleIds([Role::ROLE_ID_AUTHOR], $contextId);
         $userGroups = $userGroups->toArray();
@@ -114,6 +127,10 @@ class CitationStyleLanguageSettingsForm extends Form
             'pluginName' => $this->plugin->getName(),
             'allDownloads' => $allDownloads,
             'allStyles' => $allStyles,
+            # UZH CHANGE OJS-118 2022/01/19/mb
+            'allCitationPrecedences' => $allPrecedences,
+            'citationPrecedence' =>  $this->getData('citationPrecedence'),
+            # END UZH CHANGE OJS-118
             'primaryCitationStyle' => $this->getData('primaryCitationStyle'),
             'enabledStyles' => $this->plugin->mapCitationIds($this->plugin->getEnabledCitationStyles($contextId)),
             'enabledDownloads' => $this->plugin->mapCitationIds($this->plugin->getEnabledCitationDownloads($contextId)),
@@ -142,6 +159,11 @@ class CitationStyleLanguageSettingsForm extends Form
         $context = $request->getContext();
         $contextId = $context->getId();
         $this->plugin->updateSetting($contextId, 'primaryCitationStyle', $this->getData('primaryCitationStyle'));
+
+        # UZH CHANGE OJS-118 2021/02/12/mb
+        $this->plugin->updateSetting($contextId, 'citationPrecedence', $this->getData('citationPrecedence'));
+        # END UZH CHANGE OJS-118
+
         $enabledCitationStyles = $this->getData('enabledCitationStyles') ?: [];
         $this->plugin->updateSetting($contextId, 'enabledCitationStyles', $enabledCitationStyles);
         $enabledCitationDownloads = $this->getData('enabledCitationDownloads') ?: [];

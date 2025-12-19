@@ -53,6 +53,10 @@ class CitationStyleLanguagePlugin extends GenericPlugin
     /** @var array List of citation download formats available */
     public array $_citationDownloads = [];
 
+    # UZH CHANGE OJS-118 2021/02/12/mb
+    /** @var array List of citation format precedences available */
+    public array $_citationPrecedences = [];
+
     /** @var string Name of the application */
     public string $application;
 
@@ -174,6 +178,13 @@ class CitationStyleLanguagePlugin extends GenericPlugin
                 'title' => __('plugins.generic.citationStyleLanguage.style.ama'),
                 'isEnabled' => true,
             ],
+            # UZH CHANGE OJS-79 2020/04/16 New CSL for GISo
+            [
+                'id' => 'wirtschaftsuniversitat-wien-handel-und-marketing',
+                'title' => __('plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing'),
+                'isEnabled' => true,
+            ],
+            # END UZH CHANGE OJS-79
         ];
 
         // If hooking in to add a custom .csl file, add a `useCsl` key to your
@@ -203,6 +214,58 @@ class CitationStyleLanguagePlugin extends GenericPlugin
 
         return $primaryStyle['id'];
     }
+
+    # UZH CHANGE OJS-118 2021/02/12/mb
+    /**
+     * Get list of available formatting precedences
+     *
+     * @return array
+     */
+    public function getCitationPrecedences() {
+        if (!empty($this->_citationPrecedences)) {
+            return $this->_citationPrecedences;
+        }
+
+        $defaults = array(
+            array(
+                'id' => 'article',
+                'title' => __('plugins.generic.citationStyleLanguage.settings.precedenceArticle'),
+                'isPrecedence' => true,
+            ),
+            array(
+                'id' => 'issue',
+                'title' => __('plugins.generic.citationStyleLanguage.settings.precedenceIssue'),
+            ),
+        );
+
+        $this->_citationPrecedences = $defaults;
+
+        return $this->_citationPrecedences;
+    }
+
+    /**
+     * Get the style format precedence or default to the first one
+     *
+     * @param $contextId integer Journal ID
+     * @return string
+     */
+    public function getCitationPrecedence($contextId = 0) {
+        $citationPrecedence = $this->getSetting($contextId, 'citationPrecedence');
+        if ($citationPrecedence) {
+            return $citationPrecedence;
+        }
+
+        $precedences = $this->getCitationPrecedences();
+        $formatPrecedences = array_filter($precedences, function($precedence) {
+            return !empty($precedence['isPrecedence']);
+        });
+
+        $defaultPrecedence = count($formatPrecedences) ? array_shift($formatPrecedences) : array_shift($precedences);
+        return $defaultPrecedence['id'];
+    }
+    # END UZH CHANGE OJS-118
+
+    
 
     /**
      * Get enabled citation styles
@@ -426,8 +489,35 @@ class CitationStyleLanguagePlugin extends GenericPlugin
         if ($this->isArticle) {
             $citationData->type = ($this->application === 'ojs2' ? 'article-journal' : 'article');
             $citationData->risType = 'JOUR';
+            # UZH CHANGE OJS-222 2025/06/06/mb use OpenAIRE types if available
+            if ($sectionId = $publication->getData('sectionId')) {
+                $section = Repo::section()->get($sectionId);
+                if ($section && $section->getData('resourceType')) {
+                    $resourceType = $section->getData('resourceType');
+                    $citationData->type = $this->_mapCoarToCSLType($resourceType);
+                    $citationData->genre = $this->_mapCoarToCSLGenre($resourceType);
+                    $citationData->risType = $this->_mapCoarToRISType($resourceType);
+                }
+            }
+            # END UZH CHANGE OJS-222
+
             $citationData->id = $submission->getId();
-            $citationData->title = $publication->getLocalizedFullTitle();
+            # UZH CHANGE OJS-217 2023/08/31/mb,2024/04/25/mb get title in original language
+            $articleLanguages = $publication->getLocalizedData('languages');
+            if (is_null($articleLanguages)) {
+                $citationData->title = $publication->getLocalizedFullTitle();
+            } else {
+                $articleLanguage = $articleLanguages[0];
+                $citationLocale = $this->mapCitationLanguage($articleLanguage);
+                $articleTitle = $publication->getLocalizedFullTitle($citationLocale);
+                if (is_null($articleTitle)) {
+                    $citationData->title = $publication->getLocalizedFullTitle();
+                } else {
+                    $citationData->title = $articleTitle;
+                }
+            }
+            # END UZH CHANGE OJS-217
+
             $citationData->{'container-title'} = $context->getLocalizedName();
             $issueId = $publication->getData('issueId');
             $issue ??= $issueId ? Repo::issue()->get($issueId) : null;
@@ -510,24 +600,52 @@ class CitationStyleLanguagePlugin extends GenericPlugin
         $citationData->accessed = new stdClass();
         $citationData->accessed->raw = date('Y-m-d');
 
-        if ($publication->getData('datePublished')) {
-            $citationData->issued = new stdClass();
-            $citationData->issued->raw = htmlspecialchars($publication->getData('datePublished'));
-            $publishedPublications = $submission->getPublishedPublications();
-            if (count($publishedPublications) > 1) {
-                $originalPublication = array_reduce($publishedPublications, function ($a, $b) {
-                    return $a && $a->getId() < $b->getId() ? $a : $b;
-                });
-                $originalDate = $originalPublication->getData('datePublished');
-                if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
-                    $citationData->{'original-date'} = new stdClass();
-                    $citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+        # UZH CHANGE OJS-118 2021/02/12/mb
+        $contextId = $submission->getContextId();
+        $precedence = $this->getSetting($contextId, 'citationPrecedence');
+
+        if ($precedence === 'issue') {
+            if ($issue && $issue->getPublished()) {
+                $citationData->issued = new stdClass();
+                $dateYear = $issue->getYear();
+                $citationData->issued->{'date-parts'} = [[ $dateYear ]];
+                # $citationData->issued->raw = htmlspecialchars($dateYear);
+            } elseif ($publication->getData('datePublished')) {
+                $citationData->issued = new stdClass();
+                $citationData->issued->raw = $publication->getData('datePublished');
+                $publishedPublications = $article->getPublishedPublications();
+                if (count($publishedPublications) > 1) {
+                    $originalPublication = array_reduce($publishedPublications, function($a, $b) {
+                        return $a && $a->getId() < $b->getId() ? $a : $b;
+                    });
+                    $originalDate = $originalPublication->getData('datePublished');
+                    if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
+                        $citationData->{'original-date'} = new stdClass();
+                        $citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+                    }
                 }
             }
-        } elseif ($this->isArticle && $issue?->getPublished()) {
-            $citationData->issued = new stdClass();
-            $citationData->issued->raw = htmlspecialchars($issue->getDatePublished());
+        } else {
+            if ($publication->getData('datePublished')) {
+                $citationData->issued = new stdClass();
+                $citationData->issued->raw = htmlspecialchars($publication->getData('datePublished'));
+                $publishedPublications = $submission->getPublishedPublications();
+                if (count($publishedPublications) > 1) {
+                    $originalPublication = array_reduce($publishedPublications, function ($a, $b) {
+                        return $a && $a->getId() < $b->getId() ? $a : $b;
+                    });
+                    $originalDate = $originalPublication->getData('datePublished');
+                    if ($originalDate && $originalDate !== $publication->getData('datePublished')) {
+                        $citationData->{'original-date'} = new stdClass();
+                        $citationData->{'original-date'}->raw = htmlspecialchars($originalPublication->getData('datePublished'));
+                    }
+                }
+            } elseif ($this->isArticle && $issue?->getPublished()) {
+                $citationData->issued = new stdClass();
+                $citationData->issued->raw = htmlspecialchars($issue->getDatePublished());
+            }
         }
+        # END UZH CHANGE OJS-118
 
         Hook::call('CitationStyleLanguage::citation', [&$citationData, &$citationStyle, $submission, $issue, $context, $publication]);
 
@@ -612,6 +730,48 @@ class CitationStyleLanguagePlugin extends GenericPlugin
 
         return $citation;
     }
+
+    /**
+     * UZH CHANGE OJS-217 2023/08/31/mb return locale based on language
+     *
+     * @param $language some language code (2 or 4 characters)
+     */
+
+    public function mapCitationLanguage( $language ) {
+        $lang = strtolower( $language );
+        if ($lang === '') {
+            $citationLocale = 'en_US';
+            return $citationLocale;
+        }
+        $language2code = array(
+            'de' => 'de',
+            'de_de' => 'de',
+            'de_ch' => 'de',
+            'en' => 'en',
+            'en_gb' => 'en',
+            'en_us' => 'en',
+            'eng' => 'en',
+            'es' => 'es',
+            'es_es' => 'es',
+            'fr' => 'fr_FR',
+            'fr_ca' => 'fr_FR',
+            'fr_fr' => 'fr_FR',
+            'it' => 'it',
+            'it_it' => 'it',
+            'pt' => 'pt',
+            'pt_pt' => 'pt',
+            'ro' => 'ro',
+            'ro_ro' => 'ro'
+        );
+
+        $citationLocale = $language2code[$lang];
+        if (is_null($citationLocale)) {
+            $citationLocale = 'en_US';
+        }
+
+        return $citationLocale;
+    }
+    # END UZH CHANGE OJS-217
 
     /**
      * Load a CSL style and return the contents as a string
@@ -1008,4 +1168,117 @@ class CitationStyleLanguagePlugin extends GenericPlugin
     {
         return 0 === strcmp($a->family, $b->family) && 0 === strcmp($a->given, $b->given) ? 0 : 1;
     }
+
+    /**
+     * UZH CHANGE OJS-222 2025/06/05/mb changes for PCH
+     * map a COAR Resource Type by URI to a CSL type
+     * @param $uri string
+     * @return string
+     */
+    public function _mapCoarToCSLType($uri = null) {
+        $mapResourceTypes = array(
+            'http://purl.org/coar/resource_type/c_6501' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_2df8fbb1' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_dcae04bc' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_b239' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_beb9' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_7bab' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_545b' => 'article-journal',
+            'http://purl.org/coar/resource_type/c_0640' => 'periodical',
+            'http://purl.org/coar/resource_type/c_93fc' => 'report',
+            'http://purl.org/coar/resource_type/c_efa0' => 'review',
+            'http://purl.org/coar/resource_type/c_ba08' => 'review-book',
+            'http://purl.org/coar/resource_type/c_26e4' => 'interview',
+            'http://purl.org/coar/resource_type/c_8544' => 'speech',
+            'http://purl.org/coar/resource_type/c_5794' => 'paper-conference',
+            'http://purl.org/coar/resource_type/c_6670' => 'speech',
+            'http://purl.org/coar/resource_type/c_f744' => 'book',
+            'http://purl.org/coar/resource_type/c_c94f' => 'speech',
+            'http://purl.org/coar/resource_type/c_46ec' => 'thesis',
+            'http://purl.org/coar/resource_type/c_8042' => 'article',
+            'http://purl.org/coar/resource_type/c_816b' => 'article',
+            'http://purl.org/coar/resource_type/c_3248' => 'chapter',
+            'http://purl.org/coar/resource_type/F8RT-TJK0' => 'speech',
+            'http://purl.org/coar/resource_type/YC9F-HGCF' => 'collection',
+            'http://purl.org/coar/resource_type/c_c513' => 'graphic',
+            'http://purl.org/coar/resource_type/c_8a7e' => 'motion_picture',
+            'http://purl.org/coar/resource_type/c_18cc' => 'song',
+            'http://purl.org/coar/resource_type/c_18cd' => 'musical_score',
+            'http://purl.org/coar/resource_type/c_1843' => 'article-journal'
+        );
+
+        if ($uri && array_key_exists($uri, $mapResourceTypes)) {
+            return $mapResourceTypes[$uri];
+        } else {
+            return 'article-journal';
+        }
+    }
+
+    /** 
+     * map a COAR Resource Type by URI to a CSL genre
+     * @param $uri string
+     * @return string
+     */
+    public function _mapCoarToCSLGenre($uri = null) {
+        $mapResourceGenres = array(
+            'http://purl.org/coar/resource_type/c_8544' => 'lecture',
+            'http://purl.org/coar/resource_type/c_6670' => 'conference poster',
+            'http://purl.org/coar/resource_type/c_c94f' => 'conference output',
+            'http://purl.org/coar/resource_type/F8RT-TJK0' => 'artistic work',
+        );
+
+        if ($uri && array_key_exists($uri, $mapResourceGenres)) {
+            return $mapResourceGenres[$uri];
+        } else {
+            return '';
+        }
+    }
+
+    /**
+     * map a COAR Resource Type by URI to a RIS reference type
+     * @param $uri string
+     * @return string
+     */
+    public function _mapCoarToRISType($uri = null) {
+        $mapRISTypes = array(
+            'http://purl.org/coar/resource_type/c_6501' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_2df8fbb1' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_dcae04bc' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_b239' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_beb9' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_7bab' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_545b' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_0640' => 'JFULL',
+            'http://purl.org/coar/resource_type/c_93fc' => 'RPRT',
+            'http://purl.org/coar/resource_type/c_efa0' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_ba08' => 'JOUR',
+            'http://purl.org/coar/resource_type/c_26e4' => 'INTV',
+            'http://purl.org/coar/resource_type/c_8544' => 'GEN',
+            'http://purl.org/coar/resource_type/c_5794' => 'CPAPER',
+            'http://purl.org/coar/resource_type/c_6670' => 'UNPB',
+            'http://purl.org/coar/resource_type/c_f744' => 'CONF',
+            'http://purl.org/coar/resource_type/c_c94f' => 'UNPB',
+            'http://purl.org/coar/resource_type/c_46ec' => 'THES',
+            'http://purl.org/coar/resource_type/c_8042' => 'GEN',
+            'http://purl.org/coar/resource_type/c_816b' => 'GEN',
+            'http://purl.org/coar/resource_type/c_3248' => 'CHAP',
+            'http://purl.org/coar/resource_type/F8RT-TJK0' => 'ART',
+            'http://purl.org/coar/resource_type/YC9F-HGCF' => 'GEN',
+            'http://purl.org/coar/resource_type/c_c513' => 'ADVS',
+            'http://purl.org/coar/resource_type/c_8a7e' => 'VIDEO',
+            'http://purl.org/coar/resource_type/c_18cc' => 'ADVS',
+            'http://purl.org/coar/resource_type/c_18cd' => 'MUSIC',
+            'http://purl.org/coar/resource_type/c_1843' => 'GEN',
+        );
+
+        if ($uri && array_key_exists($uri, $mapRISTypes)) {
+            return $mapRISTypes[$uri];
+        } else {
+            return 'JOUR';
+        }
+    }
+
+    /* END UZH CHANGE OJS-222 */
+
+
 }
