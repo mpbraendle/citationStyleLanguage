@@ -26,6 +26,9 @@ msgstr "ACM"
 msgid "plugins.generic.citationStyleLanguage.style.acs-nano"
 msgstr "ACS"
 
+msgid "plugins.generic.citationStyleLanguage.style.ama"
+msgstr "AMA"
+
 msgid "plugins.generic.citationStyleLanguage.style.apa"
 msgstr "APA"
 
@@ -50,14 +53,14 @@ msgstr "Turabian"
 msgid "plugins.generic.citationStyleLanguage.style.vancouver"
 msgstr "Vancouver"
 
-msgid "plugins.generic.citationStyleLanguage.style.ama"
-msgstr "AMA"
+msgid "plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing"
+msgstr "WU H&M"
 
 msgid "plugins.generic.citationStyleLanguage.download.bibtex"
 msgstr "BibTeX"
 
 msgid "plugins.generic.citationStyleLanguage.download.ris"
-msgstr "Endnote/Zotero/Mendeley (RIS)"
+msgstr "Citavi/Endnote/Zotero/Mendeley (RIS)"
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationDownloads"
 msgstr "Downloadable Formats"
@@ -115,3 +118,15 @@ msgstr "Select the roles that should be identified as translators."
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationOptionChooseChapterAuthor"
 msgstr "Select the roles that should be identified as chapter authors."
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedences"
+msgstr "Metadata Precedence"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"
+msgstr "Select which type of metadata will be used to format the citation."
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceArticle"
+msgstr "Publication date of the article"
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceIssue"
+msgstr "Metadata of the issue (year, volume, number)"

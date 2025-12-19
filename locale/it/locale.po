@@ -31,6 +31,9 @@ msgstr "ACM"
 msgid "plugins.generic.citationStyleLanguage.style.acs-nano"
 msgstr "ACS"
 
+msgid "plugins.generic.citationStyleLanguage.style.ama"
+msgstr "AMA"
+
 msgid "plugins.generic.citationStyleLanguage.style.apa"
 msgstr "APA"
 
@@ -55,11 +58,14 @@ msgstr "Turabian"
 msgid "plugins.generic.citationStyleLanguage.style.vancouver"
 msgstr "Vancouver"
 
+msgid "plugins.generic.citationStyleLanguage.style.wirtschaftsuniversitat-wien-handel-und-marketing"
+msgstr "WU H&M"
+
 msgid "plugins.generic.citationStyleLanguage.download.bibtex"
 msgstr "BibTeX"
 
 msgid "plugins.generic.citationStyleLanguage.download.ris"
-msgstr "Endnote/Zotero/Mendeley (RIS)"
+msgstr "Citavi/Endnote/Zotero/Mendeley (RIS)"
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationDownloads"
 msgstr "Formati di scarico"
@@ -86,9 +92,6 @@ msgstr ""
 
 msgid "plugins.generic.citationStyleLanguage.settings.publisherLocation"
 msgstr "Localizzazione del publisher"
-
-msgid "plugins.generic.citationStyleLanguage.style.ama"
-msgstr "AMA"
 
 msgid "plugins.generic.citationStyleLanguage.settings.citationChooseAuthor"
 msgstr "Autori"
@@ -134,3 +137,15 @@ msgstr ""
 msgid "plugins.generic.citationStyleLanguage.settings.citationOptionChooseChapterAuthor"
 msgstr ""
 "Selezionate i ruoli che devono essere identificati come autori dei capitoli."
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedences"
+msgstr "Precedenza dei metadati"
+
+msgid "plugins.generic.citationStyleLanguage.settings.citationPrecedencesDescription"
+msgstr "Seleziona quale tipo di metadati sarà usato per formattare la citazione."
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceArticle"
+msgstr "Data di pubblicazione dell'articolo"
+
+msgid "plugins.generic.citationStyleLanguage.settings.precedenceIssue"
+msgstr "Metadati del fascicolo (anno, volume, numero)"
